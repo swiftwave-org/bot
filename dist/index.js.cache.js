@@ -28,8 +28,7 @@ async function act_on_pending_triage_removal(octokit) {
     github.context.eventName == "issues" &&
     github.context.payload.action == "unlabeled"
   ) {
-    const issue = Issue.getInstance();
-    await issue.fetchIssueDetails();
+    const issue = await Issue.getInstance();
 
     // check if the label removed is `pending-triage`
     if (github.context.payload.label.name == "pending-triage") {
@@ -29842,50 +29841,51 @@ const github = __webpack_require__(5438);
 const core = __webpack_require__(2186);
 
 class Issue {
-  /**
-   * actions_payload : the payload received from the action context
-   * details : the details of the issue fetched from the API
-   */
+    /**
+     * ### Available properties
+     * actions_payload : the payload received from the action context
+     * details : the details of the issue fetched from the API
+     */
 
-  static instance;
+    /** @type {Issue} */
+    static instance;
 
-  /**
-   *  @returns {Issue}
-   * */
-  static getInstance() {
-    if (!Issue.instance) {
-      Issue.instance = new Issue();
+    /** @returns {Promise<Issue>} */
+    static async getInstance() {
+        if (!Issue.instance) {
+            Issue.instance = new Issue();
+            await Issue.instance.fetchIssueDetails();
+        }
+        return Issue.instance;
     }
-    return Issue.instance;
-  }
 
-  /**
-   * @typedef {import('@octokit/core').Octokit & import("@octokit/plugin-rest-endpoint-methods/dist-types/types").Api & { paginate: import("@octokit/plugin-paginate-rest").PaginateInterface; }} octokit
-   * @param {octokit} octokit - Octokit instance
-   */
-  constructor(octokit) {
-    this.actions_payload = github.context.payload.issue;
-    this.octokit = octokit;
-  }
+    constructor() {
+        this.actions_payload = github.context.payload.issue;
+        /**
+         * @typedef {import('@octokit/core').Octokit & import("@octokit/plugin-rest-endpoint-methods/dist-types/types").Api & { paginate: import("@octokit/plugin-paginate-rest").PaginateInterface; }} octokit
+         * @type {octokit}
+         */
+        this.octokit = globalThis.octokit;
+    }
 
-  async fetchIssueDetails() {
-    if (this.fetched_issue_details) {
-      return;
+    async fetchIssueDetails() {
+        if (this.fetched_issue_details) {
+            return;
+        }
+        const issue_details_response = await this.octokit.rest.issues.get({
+            owner: github.context.payload.repository.owner.login,
+            repo: github.context.payload.repository.name,
+            issue_number: this.actions_payload.number,
+        });
+        if (issue_details_response.status == 200) {
+            core.info("Issue details fetched successfully");
+        } else {
+            core.setFailed("Failed to fetch issue details");
+        }
+        const issue_details = await issue_details_response.data;
+        this.details = issue_details;
+        this.fetched_issue_details = true;
     }
-    const issue_details_response = await this.octokit.rest.issues.get({
-      owner: github.context.payload.repository.owner.login,
-      repo: github.context.payload.repository.name,
-      issue_number: this.actions_payload.number,
-    });
-    if (issue_details_response.status == 200) {
-      core.info("Issue details fetched successfully");
-    } else {
-        core.setFailed("Failed to fetch issue details");
-    }
-    const issue_details = await issue_details_response.data;
-    this.details = issue_details;
-    this.fetched_issue_details = true;
-  }
 }
 
 module.exports = { Issue };
@@ -30160,12 +30160,19 @@ var __webpack_exports__ = {};
 (() => {
 const core = __webpack_require__(2186);
 const github = __webpack_require__(5438);
+const {Issue} = __webpack_require__(9882);
 
 const act_on_pending_triage_removal = __webpack_require__(3834);
 
 const run = async () => {
     const token = core.getInput('token', { required: true });
     const octokit = github.getOctokit(token);
+
+    // Set some global variables
+    globalThis.octokit = octokit;
+
+    // Initialize singletons
+    await Issue.getInstance();
 
     // List all the triggers here
     await act_on_pending_triage_removal(octokit);
