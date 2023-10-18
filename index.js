@@ -6,6 +6,8 @@ const act_on_pending_triage_removal = require('./act_on_pending_triage_removal')
 const run = async () => {
     const token = core.getInput('token', { required: true });
     const octokit = github.getOctokit(token);
+
+    // List all the triggers here
     await act_on_pending_triage_removal(octokit);
 }
 

@@ -1,5 +1,6 @@
 const core = require("@actions/core");
 const github = require("@actions/github");
+const { Issue } = require("./singletons");
 
 /**
  * This function will be only run if
@@ -16,45 +17,35 @@ const github = require("@actions/github");
  * @returns {Promise<void>}
  */
 async function act_on_pending_triage_removal(octokit) {
-  const issue = github.context.payload.issue;
-
   // Check event name and action
   if (
     github.context.eventName == "issues" &&
     github.context.payload.action == "unlabeled"
   ) {
+    const issue = Issue.getInstance();
+    await issue.fetchIssueDetails();
+
     // check if the label removed is `pending-triage`
     if (github.context.payload.label.name == "pending-triage") {
       // Check if the issue is closed
-      if (issue.state == "closed") {
+      if (issue.actions_payload.state == "closed") {
         core.info("Issue is closed, no action needed");
       } else {
         // Check if the issue is locked
-        if (issue.locked == true) {
+        if (issue.actions_payload.locked == true) {
           // Unlock the issue
           core.info("Issue is locked, unlocking...");
           try {
             const octokit_response = await octokit.rest.issues.unlock({
               owner: github.context.payload.repository.owner.login,
               repo: github.context.payload.repository.name,
-              issue_number: issue.number,
+              issue_number: issue.actions_payload.number,
             });
             if (octokit_response.status == 204) {
               core.info("Issue unlocked successfully");
 
-              // Fetch assigned users
-              const issue_details_response = await octokit.rest.issues.get({
-                owner: github.context.payload.repository.owner.login,
-                repo: github.context.payload.repository.name,
-                issue_number: issue.number,
-              })
-              if (issue_details_response.status == 200) {
-                core.info("Issue details fetched successfully");
-              }
-              const issue_details = issue_details_response.data;
-
-              const issue_assignees = issue_details.assignees || [];
-              
+              // Issue Assignees
+              const issue_assignees = issue.details.assignees || [];
 
               // Create message
               let message = `This issue has been verified and unlocked.\n `;
@@ -71,10 +62,10 @@ async function act_on_pending_triage_removal(octokit) {
               const comment_response = await octokit.rest.issues.createComment({
                 owner: github.context.payload.repository.owner.login,
                 repo: github.context.payload.repository.name,
-                issue_number: issue.number,
+                issue_number: issue.actions_payload.number,
                 body: message,
               });
-              if (comment_response.status == 201) {
+              if (comment_response.status != 201) {
                 core.info("Commented successfully");
               } else {
                 core.error(
@@ -99,6 +90,5 @@ async function act_on_pending_triage_removal(octokit) {
     }
   }
 }
-
 
 module.exports = act_on_pending_triage_removal;
