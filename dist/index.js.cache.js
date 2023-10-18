@@ -64,8 +64,8 @@ async function act_on_pending_triage_removal(octokit) {
 
               // Create message
               let message = `This issue has been verified and unlocked.\n `;
-              if (issue_assignees.data.length > 0) {
-                issue_assignees.data.forEach((assignee) => {
+              if (issue_assignees.length > 0) {
+                issue_assignees.forEach((assignee) => {
                   message += `@${assignee.login} `;
                 });
                 message += ` can start working on this issue now amd raise PR`;
