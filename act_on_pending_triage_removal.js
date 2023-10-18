@@ -61,12 +61,20 @@ async function act_on_pending_triage_removal(octokit) {
               }
 
               // Add a comment to the issue
-              await octokit.rest.issues.createComment({
+              const comment_response = await octokit.rest.issues.createComment({
                 owner: github.context.payload.repository.owner.login,
                 repo: github.context.payload.repository.name,
                 issue_number: issue.number,
                 body: message,
               });
+              if (comment_response.status == 201) {
+                core.info("Comment added successfully");
+              } else {
+                core.error(
+                  "Comment adding failed with status code " +
+                    comment_response.status.toString()
+                );
+              }
             } else {
               core.error(
                 "Issue unlocking failed with status code " +
