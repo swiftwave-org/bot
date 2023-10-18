@@ -5,10 +5,6 @@ inputs:
   token:
     description: 'The GITHUB_TOKEN to access your repository or OAUTH_TOKEN to use your bot github account.'
     required: true
-  is-oauth-token:
-    description: 'Is the token provided above an OAUTH_TOKEN? (Bot account should be a collaborator on your repo.)'
-    required: false
-    default: false
 runs:
-  using: 'node12'
-  main: 'main.js'
+  using: 'node16'
+  main: 'dist/index.js'
