@@ -47,6 +47,40 @@ async function act_on_pending_triage_removal(octokit) {
             });
             if (octokit_response.status == 204) {
               core.info("Issue unlocked successfully");
+
+              // Fetch assigned users
+              const issue_assignees = await octokit.rest.issues.listAssignees({
+                owner: github.context.payload.repository.owner.login,
+                repo: github.context.payload.repository.name,
+                issue_number: issue.number,
+              });
+
+              // Create message
+              let message = `This issue has been verified and unlocked.\n `;
+              if (issue_assignees.data.length > 0) {
+                issue_assignees.data.forEach((assignee) => {
+                  message += `@${assignee.login} `;
+                });
+                message += ` can start working on this issue now amd raise PR`;
+              } else {
+                message += `If anyone is interested in working on this issue, please comment \`/assign\` to get assigned to this issue.`;
+              }
+
+              // Add a comment to the issue
+              const comment_response = await octokit.rest.issues.createComment({
+                owner: github.context.payload.repository.owner.login,
+                repo: github.context.payload.repository.name,
+                issue_number: issue.number,
+                body: message,
+              });
+              if (comment_response.status == 201) {
+                core.info("Commented successfully");
+              } else {
+                core.error(
+                  "Comment adding failed with status code " +
+                    comment_response.status.toString()
+                );
+              }
             } else {
               core.error(
                 "Issue unlocking failed with status code " +

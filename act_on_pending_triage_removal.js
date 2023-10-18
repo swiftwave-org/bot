@@ -68,7 +68,7 @@ async function act_on_pending_triage_removal(octokit) {
                 body: message,
               });
               if (comment_response.status == 201) {
-                core.info("Comment added successfully");
+                core.info("Commented successfully");
               } else {
                 core.error(
                   "Comment adding failed with status code " +
