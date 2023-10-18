@@ -42,12 +42,7 @@ async function act_on_pending_triage_removal(octokit) {
             if (octokit_response.status == 204) {
               core.info("Issue unlocked successfully");
 
-              // Fetch assigned users
-              const issue_assignees = await octokit.rest.issues.listAssignees({
-                owner: github.context.payload.repository.owner.login,
-                repo: github.context.payload.repository.name,
-                issue_number: issue.number,
-              });
+              const issue_assignees = issue.assignees ?? [];
 
               // Create message
               let message = `This issue has been verified and unlocked.\n `;
