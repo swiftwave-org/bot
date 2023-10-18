@@ -15,7 +15,7 @@ const github = require("@actions/github");
  * @param {octokit} octokit - Octokit instance
  * @returns {Promise<void>}
  */
-export default async function act_on_pending_triage_removal(octokit) {
+async function act_on_pending_triage_removal(octokit) {
   const issue = github.context.payload.issue;
 
   // Check event name and action
@@ -58,3 +58,6 @@ export default async function act_on_pending_triage_removal(octokit) {
     }
   }
 }
+
+
+module.exports = act_on_pending_triage_removal;
