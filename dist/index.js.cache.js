@@ -30160,7 +30160,6 @@ var __webpack_exports__ = {};
 (() => {
 const core = __webpack_require__(2186);
 const github = __webpack_require__(5438);
-const {Issue} = __webpack_require__(9882);
 
 const act_on_pending_triage_removal = __webpack_require__(3834);
 
@@ -30170,9 +30169,6 @@ const run = async () => {
 
     // Set some global variables
     globalThis.octokit = octokit;
-
-    // Initialize singletons
-    await Issue.getInstance();
 
     // List all the triggers here
     await act_on_pending_triage_removal(octokit);
