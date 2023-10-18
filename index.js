@@ -11,9 +11,6 @@ const run = async () => {
     // Set some global variables
     globalThis.octokit = octokit;
 
-    // Initialize singletons
-    await Issue.getInstance();
-
     // List all the triggers here
     await act_on_pending_triage_removal(octokit);
 }
