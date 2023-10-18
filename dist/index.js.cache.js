@@ -6,6 +6,7 @@
 
 const core = __webpack_require__(2186);
 const github = __webpack_require__(5438);
+const { Issue } = __webpack_require__(9882);
 
 /**
  * This function will be only run if
@@ -22,45 +23,35 @@ const github = __webpack_require__(5438);
  * @returns {Promise<void>}
  */
 async function act_on_pending_triage_removal(octokit) {
-  const issue = github.context.payload.issue;
-
   // Check event name and action
   if (
     github.context.eventName == "issues" &&
     github.context.payload.action == "unlabeled"
   ) {
+    const issue = Issue.getInstance();
+    await issue.fetchIssueDetails();
+
     // check if the label removed is `pending-triage`
     if (github.context.payload.label.name == "pending-triage") {
       // Check if the issue is closed
-      if (issue.state == "closed") {
+      if (issue.actions_payload.state == "closed") {
         core.info("Issue is closed, no action needed");
       } else {
         // Check if the issue is locked
-        if (issue.locked == true) {
+        if (issue.actions_payload.locked == true) {
           // Unlock the issue
           core.info("Issue is locked, unlocking...");
           try {
             const octokit_response = await octokit.rest.issues.unlock({
               owner: github.context.payload.repository.owner.login,
               repo: github.context.payload.repository.name,
-              issue_number: issue.number,
+              issue_number: issue.actions_payload.number,
             });
             if (octokit_response.status == 204) {
               core.info("Issue unlocked successfully");
 
-              // Fetch assigned users
-              const issue_details_response = await octokit.rest.issues.get({
-                owner: github.context.payload.repository.owner.login,
-                repo: github.context.payload.repository.name,
-                issue_number: issue.number,
-              })
-              if (issue_details_response.status == 200) {
-                core.info("Issue details fetched successfully");
-              }
-              const issue_details = issue_details_response.data;
-
-              const issue_assignees = issue_details.assignees || [];
-              
+              // Issue Assignees
+              const issue_assignees = issue.details.assignees || [];
 
               // Create message
               let message = `This issue has been verified and unlocked.\n `;
@@ -77,10 +68,10 @@ async function act_on_pending_triage_removal(octokit) {
               const comment_response = await octokit.rest.issues.createComment({
                 owner: github.context.payload.repository.owner.login,
                 repo: github.context.payload.repository.name,
-                issue_number: issue.number,
+                issue_number: issue.actions_payload.number,
                 body: message,
               });
-              if (comment_response.status == 201) {
+              if (comment_response.status != 201) {
                 core.info("Commented successfully");
               } else {
                 core.error(
@@ -106,8 +97,8 @@ async function act_on_pending_triage_removal(octokit) {
   }
 }
 
-
 module.exports = act_on_pending_triage_removal;
+
 
 /***/ }),
 
@@ -29844,6 +29835,64 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 9882:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const github = __webpack_require__(5438);
+const core = __webpack_require__(2186);
+
+class Issue {
+  /**
+   * actions_payload : the payload received from the action context
+   * details : the details of the issue fetched from the API
+   */
+
+  static instance;
+
+  /**
+   *  @returns {Issue}
+   * */
+  static getInstance() {
+    if (!Issue.instance) {
+      Issue.instance = new Issue();
+    }
+    return Issue.instance;
+  }
+
+  /**
+   * @typedef {import('@octokit/core').Octokit & import("@octokit/plugin-rest-endpoint-methods/dist-types/types").Api & { paginate: import("@octokit/plugin-paginate-rest").PaginateInterface; }} octokit
+   * @param {octokit} octokit - Octokit instance
+   */
+  constructor(octokit) {
+    this.actions_payload = github.context.payload.issue;
+    this.octokit = octokit;
+  }
+
+  async fetchIssueDetails() {
+    if (this.fetched_issue_details) {
+      return;
+    }
+    const issue_details_response = await this.octokit.rest.issues.get({
+      owner: github.context.payload.repository.owner.login,
+      repo: github.context.payload.repository.name,
+      issue_number: this.actions_payload.number,
+    });
+    if (issue_details_response.status == 200) {
+      core.info("Issue details fetched successfully");
+    } else {
+        core.setFailed("Failed to fetch issue details");
+    }
+    const issue_details = await issue_details_response.data;
+    this.details = issue_details;
+    this.fetched_issue_details = true;
+  }
+}
+
+module.exports = { Issue };
+
+
+/***/ }),
+
 /***/ 9491:
 /***/ ((module) => {
 
@@ -30117,6 +30166,8 @@ const act_on_pending_triage_removal = __webpack_require__(3834);
 const run = async () => {
     const token = core.getInput('token', { required: true });
     const octokit = github.getOctokit(token);
+
+    // List all the triggers here
     await act_on_pending_triage_removal(octokit);
 }
 
