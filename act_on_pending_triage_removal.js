@@ -64,7 +64,7 @@ async function act_on_pending_triage_removal(octokit) {
                 issue_number: issue.actions_payload.number,
                 body: message,
               });
-              if (comment_response.status != 201) {
+              if (comment_response.status == 201) {
                 core.info("Commented successfully");
               } else {
                 core.error(
