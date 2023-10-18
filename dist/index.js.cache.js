@@ -58,7 +58,7 @@ async function act_on_pending_triage_removal(octokit) {
                 issue_assignees.forEach((assignee) => {
                   message += `@${assignee.login} `;
                 });
-                message += ` can start working on this issue now amd raise PR`;
+                message += ` can start working on this issue now and raise PR`;
               } else {
                 message += `If anyone is interested in working on this issue, please comment \`/assign\` to get assigned to this issue.`;
               }
