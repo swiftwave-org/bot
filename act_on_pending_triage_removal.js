@@ -22,8 +22,7 @@ async function act_on_pending_triage_removal(octokit) {
     github.context.eventName == "issues" &&
     github.context.payload.action == "unlabeled"
   ) {
-    const issue = Issue.getInstance();
-    await issue.fetchIssueDetails();
+    const issue = await Issue.getInstance();
 
     // check if the label removed is `pending-triage`
     if (github.context.payload.label.name == "pending-triage") {

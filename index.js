@@ -1,6 +1,6 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
-const singletons = require('./singletons');
+const {Issue} = require('./singletons');
 
 const act_on_pending_triage_removal = require('./act_on_pending_triage_removal');
 
@@ -8,9 +8,12 @@ const run = async () => {
     const token = core.getInput('token', { required: true });
     const octokit = github.getOctokit(token);
 
+    // Set some global variables
+    globalThis.octokit = octokit;
+
     // Initialize singletons
-    new singletons.Issue(octokit);
-    
+    await Issue.getInstance();
+
     // List all the triggers here
     await act_on_pending_triage_removal(octokit);
 }
