@@ -37,11 +37,8 @@ async function act_on_approve_command(octokit) {
         return;
     }
     const issue_comment = await IssueComment.getInstance();
-    // print details
-    core.info(`Event: ${github.context.eventName}`);
-    core.info(`Action: ${github.context.action}`);
     // Check event name and action
-    if (github.context.eventName === "issue_comment" && github.context.action === "created") {
+    if (github.context.eventName === "issue_comment" && github.context.payload.action === "created") {
         // Fetch comment body
         if ((issue_comment.details.body_text ?? "").trim() === "/approve") {
             // Find out if `pending-triage` label exists
