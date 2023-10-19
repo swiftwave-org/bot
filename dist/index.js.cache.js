@@ -52,49 +52,29 @@ async function act_on_approve_command(octokit) {
                     pending_triage_label_exists = true;
                 }
             });
-            // Ignore if the issue is not locked
-            if (issue.actions_payload.locked === false) {
-                core.info("Issue is not locked, no action needed");
-            } else {
-                // if `pending-triage` label does not exist, add it
-                if (pending_triage_label_exists === false) {
-                    core.info("Adding `pending-triage` label");
-                    try {
-                        const octokit_response = await octokit.rest.issues.addLabels({
-                            owner: github.context.payload.repository.owner.login,
-                            repo: github.context.payload.repository.name,
-                            issue_number: issue.actions_payload.number,
-                            labels: ["pending-triage"],
-                        });
-                        if (octokit_response.status == 200) {
-                            core.info("Label added successfully");
-                        } else {
-                            core.setFailed("Failed to add label");
-                        }
-                    } catch (error) {
-                        core.setFailed(error.message);
-                    }
-                }
-            }
 
             // Remove the `pending-triage` label to trigger other actions
-            core.info("Removing `pending-triage` label");
-            try {
-                const octokit_response = await octokit.rest.issues.removeLabel({
-                    owner: github.context.payload.repository.owner.login,
-                    repo: github.context.payload.repository.name,
-                    issue_number: issue.actions_payload.number,
-                    name: "pending-triage",
-                });
-                if (octokit_response.status == 200) {
-                    core.info("Label removed successfully");
-                } else {
-                    core.setFailed("Failed to remove label");
+            if (pending_triage_label_exists) {
+                core.info("Removing `pending-triage` label");
+                try {
+                    const octokit_response = await octokit.rest.issues.removeLabel({
+                        owner: github.context.payload.repository.owner.login,
+                        repo: github.context.payload.repository.name,
+                        issue_number: issue.actions_payload.number,
+                        name: "pending-triage",
+                    });
+                    if (octokit_response.status == 200) {
+                        core.info("Label removed successfully");
+                    } else {
+                        core.setFailed("Failed to remove label");
+                    }
+                } catch (error) {
+                    core.setFailed(error.message);
                 }
-            } catch (error) {
-                core.setFailed(error.message);
             }
 
+            // Call act_on_pending_triage_removal
+            await __webpack_require__(3834)(octokit, true);
         }
     }
 }
@@ -126,16 +106,17 @@ const { Issue } = __webpack_require__(9882);
  * @param {octokit} octokit - Octokit instance
  * @returns {Promise<void>}
  */
-async function act_on_pending_triage_removal(octokit) {
+async function act_on_pending_triage_removal(octokit, internal_call = false) {
   // Check event name and action
   if (
+    internal_call ||
     github.context.eventName == "issues" &&
     github.context.payload.action == "unlabeled"
   ) {
     const issue = await Issue.getInstance();
 
     // check if the label removed is `pending-triage`
-    if (github.context.payload.label.name == "pending-triage") {
+    if (github.context.payload.label.name == "pending-triage" || internal_call) {
       // Check if the issue is closed
       if (issue.actions_payload.state == "closed") {
         core.info("Issue is closed, no action needed");
