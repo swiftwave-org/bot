@@ -16,16 +16,17 @@ const { Issue } = require("./singletons");
  * @param {octokit} octokit - Octokit instance
  * @returns {Promise<void>}
  */
-async function act_on_pending_triage_removal(octokit) {
+async function act_on_pending_triage_removal(octokit, internal_call = false) {
   // Check event name and action
   if (
+    internal_call ||
     github.context.eventName == "issues" &&
     github.context.payload.action == "unlabeled"
   ) {
     const issue = await Issue.getInstance();
 
     // check if the label removed is `pending-triage`
-    if (github.context.payload.label.name == "pending-triage") {
+    if (internal_call || github.context.payload.label.name == "pending-triage") {
       // Check if the issue is closed
       if (issue.actions_payload.state == "closed") {
         core.info("Issue is closed, no action needed");
