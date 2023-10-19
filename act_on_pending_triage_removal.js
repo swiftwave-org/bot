@@ -28,11 +28,11 @@ async function act_on_pending_triage_removal(octokit, internal_call = false) {
     // check if the label removed is `pending-triage`
     if (internal_call || github.context.payload.label.name == "pending-triage") {
       // Check if the issue is closed
-      if (issue.actions_payload.state == "closed") {
+      if (issue.details.state == "closed") {
         core.info("Issue is closed, no action needed");
       } else {
         // Check if the issue is locked
-        if (issue.actions_payload.locked == true) {
+        if (issue.details.locked == true) {
           // Unlock the issue
           core.info("Issue is locked, unlocking...");
           try {

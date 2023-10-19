@@ -32,7 +32,7 @@ async function act_on_approve_command(octokit) {
         return;
     }
     const issue = await Issue.getInstance();
-    if (issue.actions_payload.state == "closed") {
+    if (issue.details.state == "closed") {
         core.info("Issue is closed, no action needed");
         return;
     }
@@ -114,11 +114,11 @@ async function act_on_pending_triage_removal(octokit, internal_call = false) {
     // check if the label removed is `pending-triage`
     if (internal_call || github.context.payload.label.name == "pending-triage") {
       // Check if the issue is closed
-      if (issue.actions_payload.state == "closed") {
+      if (issue.details.state == "closed") {
         core.info("Issue is closed, no action needed");
       } else {
         // Check if the issue is locked
-        if (issue.actions_payload.locked == true) {
+        if (issue.details.locked == true) {
           // Unlock the issue
           core.info("Issue is locked, unlocking...");
           try {
@@ -179,6 +179,86 @@ async function act_on_pending_triage_removal(octokit, internal_call = false) {
 
 module.exports = act_on_pending_triage_removal;
 
+
+/***/ }),
+
+/***/ 9468:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const core = __webpack_require__(2186);
+const github = __webpack_require__(5438);
+const { Issue, IssueComment } = __webpack_require__(9882);
+
+/**
+ * This function will be only run if
+ * - It's a PR
+ * - The PR is still open/draft
+ * - Event is `issue_comment` and action is `created`
+ * - The comment is `/update`
+ * 
+ * This function will:
+ * - Update the PR with the latest changes from the base branch
+ * - Give a thumbs up to the comment
+ * @export
+ * @typedef {import('@octokit/core').Octokit & import("@octokit/plugin-rest-endpoint-methods/dist-types/types").Api & { paginate: import("@octokit/plugin-paginate-rest").PaginateInterface; }} octokit
+ * @param {octokit} octokit - Octokit instance
+ * @returns {Promise<void>}
+ **/
+async function act_on_update_command(octokit) {
+    const issue = await Issue.getInstance();
+    if (issue.isPullRequest() === false) {
+        return;
+    }
+    core.info("Issue is a PR");
+    if (issue.details.state == "closed") {
+        core.info("PR is closed, no action needed");
+        return;
+    }
+    // Check event name and action
+    if (github.context.eventName === "issue_comment" && github.context.payload.action === "created") {
+        // Fetch comment
+        const issue_comment = await IssueComment.getInstance();
+        if ((issue_comment.details.body ?? "").trim() === "/update") {
+            core.info("Updating PR");
+            try {
+                const octokit_response = await octokit.rest.pulls.updateBranch({
+                    owner: github.context.payload.repository.owner.login,
+                    repo: github.context.payload.repository.name,
+                    pull_number: issue.actions_payload.number,
+                });
+                if (octokit_response.status == 202) {
+                    core.info("PR updated successfully");
+                } else {
+                    core.setFailed("Failed to update PR");
+                    return;
+                }
+            } catch (error) {
+                core.setFailed("Failed to update PR");
+                core.error(error);
+                return
+            }
+            // Add a thumbs up to the comment
+            try {
+                const octokit_response = await octokit.rest.reactions.createForIssueComment({
+                    owner: github.context.payload.repository.owner.login,
+                    repo: github.context.payload.repository.name,
+                    comment_id: issue_comment.actions_payload.id,
+                    content: "+1",
+                });
+                if (octokit_response.status == 201) {
+                    core.info("Thumbs up added successfully");
+                } else {
+                    core.setFailed("Failed to add thumbs up");
+                }
+            } catch (error) {
+                core.setFailed("Failed to add thumbs up");
+                core.error(error);
+            }
+        }
+    }
+}
+
+module.exports = act_on_update_command
 
 /***/ }),
 
@@ -29952,6 +30032,11 @@ class Issue {
     static async getInstance() {
         if (!Issue.instance) {
             Issue.instance = new Issue();
+        }
+        while(Issue.instance.fetching_details) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        if(!Issue.instance.fetched_issue_details) {
             await Issue.instance.fetchIssueDetails();
         }
         return Issue.instance;
@@ -29967,6 +30052,7 @@ class Issue {
     }
 
     async fetchIssueDetails() {
+        this.fetching_details = true;
         if (this.fetched_issue_details) {
             return;
         }
@@ -29984,6 +30070,11 @@ class Issue {
         const issue_details = issue_details_response.data;
         this.details = issue_details;
         this.fetched_issue_details = true;
+        this.fetching_details = false;
+    }
+
+    isPullRequest() {
+        return this.details.pull_request != undefined;
     }
 }
 
@@ -30001,6 +30092,11 @@ class IssueComment {
     static async getInstance() {
         if (!IssueComment.instance) {
             IssueComment.instance = new IssueComment();
+        }
+        while(IssueComment.instance.fetching_details) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        if(!IssueComment.instance.fetched_comment_details) {
             await IssueComment.instance.fetchDetails();
         }
         return IssueComment.instance;
@@ -30016,6 +30112,7 @@ class IssueComment {
     }
 
     async fetchDetails() {
+        this.fetching_details = true;
         if (this.fetched_comment_details) {
             return;
         }
@@ -30033,6 +30130,7 @@ class IssueComment {
         const comment_details = comment_details_response.data;
         this.details = comment_details;
         this.fetched_comment_details = true;
+        this.fetching_details = false;
     }
 }
 
@@ -30311,6 +30409,7 @@ const github = __webpack_require__(5438);
 
 const act_on_pending_triage_removal = __webpack_require__(3834);
 const act_on_approve_command = __webpack_require__(8319);
+const act_on_update_command = __webpack_require__(9468);
 
 const run = async () => {
     const token = core.getInput('token', { required: true });
@@ -30323,6 +30422,7 @@ const run = async () => {
     await Promise.all([
         act_on_pending_triage_removal(octokit),
         act_on_approve_command(octokit),
+        act_on_update_command(octokit),
     ])
 }
 

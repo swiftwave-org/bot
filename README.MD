@@ -1,7 +1,7 @@
 Sample installation workflow
 
 ```yaml
-name: 'Welcome New Contributors'
+name: 'SwiftWave Triage Bot'
 
 on:
   issues:
@@ -10,10 +10,12 @@ on:
     types: [created]
 
 jobs:
-  welcome-new-contributor:
+  swiftwave-triage-bot:
     runs-on: ubuntu-latest
     permissions:
       issues: write
+      pull-requests: write
+      contents: write
     steps:
       - name: 'Swift Bot'
         uses: swiftwave-org/bot@develop
