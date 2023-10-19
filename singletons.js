@@ -50,7 +50,7 @@ class Issue {
     }
 
     isPullRequest() {
-        return this.instance.details.pull_request != undefined;
+        return this.details.pull_request != undefined;
     }
 }
 
