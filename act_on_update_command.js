@@ -26,6 +26,7 @@ async function act_on_update_command(octokit) {
         core.info("PR is closed, no action needed");
         return;
     }
+    core.info("PR is open, continuing");
     // Check event name and action
     if (github.context.eventName === "issue_comment" && github.context.payload.action === "created") {
         // Fetch comment
