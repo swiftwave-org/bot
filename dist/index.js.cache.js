@@ -36,14 +36,10 @@ async function act_on_approve_command(octokit) {
         core.info("Issue is closed, no action needed");
         return;
     }
-    const issue_comment = await IssueComment.getInstance();
-
-    core.info("Event : " + github.context.eventName);
-    core.info("Action : " + github.context.payload.action);
-    core.info("Comment : " + issue_comment.details.body);
     // Check event name and action
     if (github.context.eventName === "issue_comment" && github.context.payload.action === "created") {
-        // Fetch comment body
+        // Fetch comment
+        const issue_comment = await IssueComment.getInstance();
         if ((issue_comment.details.body ?? "").trim() === "/approve") {
             // Find out if `pending-triage` label exists
             let pending_triage_label_exists = false;
