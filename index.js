@@ -2,6 +2,7 @@ const core = require('@actions/core');
 const github = require('@actions/github');
 
 const act_on_pending_triage_removal = require('./act_on_pending_triage_removal');
+const act_on_approve_command = require('./act_on_approve_command');
 
 const run = async () => {
     const token = core.getInput('token', { required: true });
@@ -11,7 +12,10 @@ const run = async () => {
     globalThis.octokit = octokit;
 
     // List all the triggers here
-    await act_on_pending_triage_removal(octokit);
+    await Promise.all([
+        act_on_pending_triage_removal(octokit),
+        act_on_approve_command(octokit),
+    ])
 }
 
 // Run the main function
