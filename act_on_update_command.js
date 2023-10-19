@@ -22,6 +22,7 @@ async function act_on_update_command(octokit) {
     if (issue.isPullRequest() === false) {
         return;
     }
+    core.info("Issue is a PR");
     if (issue.details.state == "closed") {
         core.info("PR is closed, no action needed");
         return;
