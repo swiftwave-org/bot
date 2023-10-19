@@ -40,11 +40,11 @@ async function act_on_approve_command(octokit) {
 
     core.info("Event : " + github.context.eventName);
     core.info("Action : " + github.context.payload.action);
-    core.info("Comment : " + issue_comment.details.body_text);
+    core.info("Comment : " + issue_comment.details.body);
     // Check event name and action
     if (github.context.eventName === "issue_comment" && github.context.payload.action === "created") {
         // Fetch comment body
-        if ((issue_comment.details.body_text ?? "").trim() === "/approve") {
+        if ((issue_comment.details.body ?? "").trim() === "/approve") {
             // Find out if `pending-triage` label exists
             let pending_triage_label_exists = false;
             issue.details.labels.forEach((label) => {
