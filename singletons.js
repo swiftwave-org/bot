@@ -48,6 +48,10 @@ class Issue {
         this.details = issue_details;
         this.fetched_issue_details = true;
     }
+
+    isPullRequest() {
+        return this.instance.details.pull_request != undefined;
+    }
 }
 
 class IssueComment {

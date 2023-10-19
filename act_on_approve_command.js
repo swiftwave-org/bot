@@ -26,7 +26,7 @@ async function act_on_approve_command(octokit) {
         return;
     }
     const issue = await Issue.getInstance();
-    if (issue.actions_payload.state == "closed") {
+    if (issue.details.state == "closed") {
         core.info("Issue is closed, no action needed");
         return;
     }
