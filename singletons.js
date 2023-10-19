@@ -15,6 +15,11 @@ class Issue {
     static async getInstance() {
         if (!Issue.instance) {
             Issue.instance = new Issue();
+        }
+        while(Issue.instance.fetching_details) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        if(!Issue.instance.fetched_issue_details) {
             await Issue.instance.fetchIssueDetails();
         }
         return Issue.instance;
@@ -30,6 +35,7 @@ class Issue {
     }
 
     async fetchIssueDetails() {
+        this.fetching_details = true;
         if (this.fetched_issue_details) {
             return;
         }
@@ -38,10 +44,6 @@ class Issue {
             repo: github.context.payload.repository.name,
             issue_number: this.actions_payload.number,
         });
-
-        core.info(this.actions_payload.number);
-        core.info(JSON.stringify(issue_details_response));
-
         if (issue_details_response.status == 200) {
             core.info("Issue details fetched successfully");
         } else {
@@ -51,6 +53,7 @@ class Issue {
         const issue_details = issue_details_response.data;
         this.details = issue_details;
         this.fetched_issue_details = true;
+        this.fetching_details = false;
     }
 
     isPullRequest() {
@@ -74,6 +77,11 @@ class IssueComment {
     static async getInstance() {
         if (!IssueComment.instance) {
             IssueComment.instance = new IssueComment();
+        }
+        while(IssueComment.instance.fetching_details) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        if(!IssueComment.instance.fetched_comment_details) {
             await IssueComment.instance.fetchDetails();
         }
         return IssueComment.instance;
@@ -89,6 +97,7 @@ class IssueComment {
     }
 
     async fetchDetails() {
+        this.fetching_details = true;
         if (this.fetched_comment_details) {
             return;
         }
@@ -106,6 +115,7 @@ class IssueComment {
         const comment_details = comment_details_response.data;
         this.details = comment_details;
         this.fetched_comment_details = true;
+        this.fetching_details = false;
     }
 }
 
