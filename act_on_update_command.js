@@ -39,10 +39,11 @@ async function act_on_update_command(octokit) {
                     repo: github.context.payload.repository.name,
                     pull_number: issue.actions_payload.number,
                 });
-                if (octokit_response.status == 200) {
+                if (octokit_response.status == 202) {
                     core.info("PR updated successfully");
                 } else {
                     core.setFailed("Failed to update PR");
+                    return;
                 }
             } catch (error) {
                 core.setFailed("Failed to update PR");
@@ -55,9 +56,9 @@ async function act_on_update_command(octokit) {
                     owner: github.context.payload.repository.owner.login,
                     repo: github.context.payload.repository.name,
                     comment_id: issue_comment.actions_payload.id,
-                    content: "THUMBS_UP",
+                    content: "+1",
                 });
-                if (octokit_response.status == 200) {
+                if (octokit_response.status == 201) {
                     core.info("Thumbs up added successfully");
                 } else {
                     core.setFailed("Failed to add thumbs up");
