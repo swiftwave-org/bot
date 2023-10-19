@@ -96,8 +96,7 @@ async function act_on_approve_command(octokit) {
 }
 
 
-module.exports = { act_on_approve_command };
-
+module.exports = act_on_approve_command;
 
 
 /***/ }),
