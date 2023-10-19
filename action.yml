@@ -6,7 +6,7 @@ inputs:
     description: 'The GITHUB_TOKEN to access your repository or OAUTH_TOKEN to use your bot github account.'
     required: true
   triage-team-usernames:
-    description: 'The usernames of the team members who can run triage related restricted commands.'
+    description: 'The usernames of the team members who can run triage related restricted commands. (comma seperated)'
     required: true
 runs:
   using: 'node16'
