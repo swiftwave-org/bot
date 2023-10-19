@@ -38,6 +38,10 @@ class Issue {
             repo: github.context.payload.repository.name,
             issue_number: this.actions_payload.number,
         });
+
+        core.info(this.actions_payload.number);
+        core.info(JSON.stringify(issue_details_response));
+
         if (issue_details_response.status == 200) {
             core.info("Issue details fetched successfully");
         } else {
