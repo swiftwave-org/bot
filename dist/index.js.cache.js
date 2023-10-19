@@ -37,6 +37,9 @@ async function act_on_approve_command(octokit) {
         return;
     }
     const issue_comment = await IssueComment.getInstance();
+
+    core.info("Event : " + github.context.eventName);
+    core.info("Action : " + github.context.payload.action);
     // Check event name and action
     if (github.context.eventName === "issue_comment" && github.context.payload.action === "created") {
         // Fetch comment body
