@@ -1,6 +1,107 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 8319:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const core = __webpack_require__(2186);
+const github = __webpack_require__(5438);
+const { Issue, IssueComment } = __webpack_require__(9882);
+
+const { verifyTriageTeam } = __webpack_require__(693);
+
+/**
+ * This function will be only run if
+ * - Verify run is triggered by a member of triage team
+ * - Event is `issue_comment` and action is `created`
+ * - The messgae is `/approve`
+ * - The issue is not closed
+ *
+ * This function will:
+ * - If locked but has no pending-triage label, add `pending-triage` label
+ * - Remove the `pending-triage` label, this will trigger `act_on_pending_triage_removal`
+ *
+ * @export
+ * @typedef {import('@octokit/core').Octokit & import("@octokit/plugin-rest-endpoint-methods/dist-types/types").Api & { paginate: import("@octokit/plugin-paginate-rest").PaginateInterface; }} octokit
+ * @param {octokit} octokit - Octokit instance
+ * @returns {Promise<void>}
+ */
+async function act_on_approve_command(octokit) {
+    if (verifyTriageTeam() === false) {
+        core.info("Not a member of triage team, no action needed");
+        return;
+    }
+    const issue = await Issue.getInstance();
+    if (issue.actions_payload.state == "closed") {
+        core.info("Issue is closed, no action needed");
+        return;
+    }
+    const issue_comment = await IssueComment.getInstance();
+    // Check event name and action
+    if (github.context.eventName === "issue_comment" && github.context.action === "created") {
+        // Fetch comment body
+        if ((issue_comment.details.body_text ?? "").trim() === "/approve") {
+            // Find out if `pending-triage` label exists
+            let pending_triage_label_exists = false;
+            issue.details.labels.forEach((label) => {
+                if (label.name === "pending-triage") {
+                    pending_triage_label_exists = true;
+                }
+            });
+            // Ignore if the issue is not locked
+            if (issue.actions_payload.locked === false) {
+                core.info("Issue is not locked, no action needed");
+            } else {
+                // if `pending-triage` label does not exist, add it
+                if (pending_triage_label_exists === false) {
+                    core.info("Adding `pending-triage` label");
+                    try {
+                        const octokit_response = await octokit.rest.issues.addLabels({
+                            owner: github.context.payload.repository.owner.login,
+                            repo: github.context.payload.repository.name,
+                            issue_number: issue.actions_payload.number,
+                            labels: ["pending-triage"],
+                        });
+                        if (octokit_response.status == 200) {
+                            core.info("Label added successfully");
+                        } else {
+                            core.setFailed("Failed to add label");
+                        }
+                    } catch (error) {
+                        core.setFailed(error.message);
+                    }
+                }
+            }
+
+            // Remove the `pending-triage` label to trigger other actions
+            core.info("Removing `pending-triage` label");
+            try {
+                const octokit_response = await octokit.rest.issues.removeLabel({
+                    owner: github.context.payload.repository.owner.login,
+                    repo: github.context.payload.repository.name,
+                    issue_number: issue.actions_payload.number,
+                    name: "pending-triage",
+                });
+                if (octokit_response.status == 200) {
+                    core.info("Label removed successfully");
+                } else {
+                    core.setFailed("Failed to remove label");
+                }
+            } catch (error) {
+                core.setFailed(error.message);
+            }
+
+        }
+    }
+}
+
+
+module.exports = { act_on_approve_command };
+
+
+
+/***/ }),
+
 /***/ 3834:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
@@ -98,6 +199,23 @@ async function act_on_pending_triage_removal(octokit) {
 
 module.exports = act_on_pending_triage_removal;
 
+
+/***/ }),
+
+/***/ 693:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+const core = __webpack_require__(2186);
+const github = __webpack_require__(5438);
+
+// This function will verify action has been performed by a member of triage team
+function verifyTriageTeam(){
+    const triageTeamUsernames = core.getInput("triage-team-usernames").split(",");
+    const actor = github.context.actor;
+    return triageTeamUsernames.includes(actor);
+}
+
+module.exports = { verifyTriageTeam };
 
 /***/ }),
 
@@ -29881,14 +29999,64 @@ class Issue {
             core.info("Issue details fetched successfully");
         } else {
             core.setFailed("Failed to fetch issue details");
+            return;
         }
-        const issue_details = await issue_details_response.data;
+        const issue_details = issue_details_response.data;
         this.details = issue_details;
         this.fetched_issue_details = true;
     }
 }
 
-module.exports = { Issue };
+class IssueComment {
+    /**
+     * ### Available properties
+     * actions_payload : the payload received from the action context
+     * details : the details of the issue fetched from the API
+     */
+
+    /** @type {IssueComment} */
+    static instance;
+
+    /** @returns {Promise<IssueComment>} */
+    static async getInstance() {
+        if (!IssueComment.instance) {
+            IssueComment.instance = new IssueComment();
+            await IssueComment.instance.fetchDetails();
+        }
+        return IssueComment.instance;
+    }
+
+    constructor() {
+        this.actions_payload = github.context.payload.comment;
+        /**
+         * @typedef {import('@octokit/core').Octokit & import("@octokit/plugin-rest-endpoint-methods/dist-types/types").Api & { paginate: import("@octokit/plugin-paginate-rest").PaginateInterface; }} octokit
+         * @type {octokit}
+         */
+        this.octokit = globalThis.octokit;
+    }
+
+    async fetchDetails() {
+        if (this.fetched_comment_details) {
+            return;
+        }
+        const comment_details_response = await this.octokit.rest.issues.getComment({
+            owner: github.context.payload.repository.owner.login,
+            repo: github.context.payload.repository.name,
+            comment_id: this.actions_payload.id,
+        });
+        if (comment_details_response.status == 200) {
+            core.info("Comment details fetched successfully");
+        } else {
+            core.setFailed("Failed to fetch comment details");
+            return;
+        }
+        const comment_details = comment_details_response.data;
+        this.details = comment_details;
+        this.fetched_comment_details = true;
+    }
+}
+
+module.exports = { Issue, IssueComment };
 
 
 /***/ }),
@@ -30162,6 +30330,7 @@ const core = __webpack_require__(2186);
 const github = __webpack_require__(5438);
 
 const act_on_pending_triage_removal = __webpack_require__(3834);
+const act_on_approve_command = __webpack_require__(8319);
 
 const run = async () => {
     const token = core.getInput('token', { required: true });
@@ -30171,7 +30340,10 @@ const run = async () => {
     globalThis.octokit = octokit;
 
     // List all the triggers here
-    await act_on_pending_triage_removal(octokit);
+    await Promise.all([
+        act_on_pending_triage_removal(octokit),
+        act_on_approve_command(octokit),
+    ])
 }
 
 // Run the main function
