@@ -50,6 +50,7 @@ class Issue {
     }
 
     isPullRequest() {
+        core.info("Checking if issue is a PR");
         return this.details.pull_request != undefined;
     }
 }
