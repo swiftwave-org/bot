@@ -55,6 +55,19 @@ class Issue {
         this.fetched_issue_details = true;
         this.fetching_details = false;
     }
+    async addLabels(labels) {
+        const octokit_response = await this.octokit.rest.issues.addLabels({
+            owner: github.context.payload.repository.owner.login,
+            repo: github.context.payload.repository.name,
+            issue_number: this.actions_payload.number,
+            labels: labels,
+        });
+        if (octokit_response.status == 200) {
+            core.info("Labels added successfully");
+        } else {
+            core.setFailed("Failed to add labels");
+        }
+    }
 
     isPullRequest() {
         return this.details.pull_request != undefined;
