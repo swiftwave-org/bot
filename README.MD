@@ -37,4 +37,4 @@ Available Option
 - `/assign` command > assigns the issue to the commenter
 - `/unassign` command > unassigns the issue from the commenter
 - `/assign @user1` command > assigns the issue to `user1` (can only be used by triage-team members)
-- `/unssign @user1` command > unassigns `user1` from the issue (can only be used by triage-team members)
+- `/unassign @user1` command > unassigns `user1` from the issue (can only be used by triage-team members)
