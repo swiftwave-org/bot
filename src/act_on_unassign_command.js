@@ -3,6 +3,9 @@ const github = require("@actions/github");
 const { Issue, IssueComment } = require("./singleton")
 const { verifyTriageTeam } = require("./helpers")
 
+// TODO: replace USER in messages by actual user_names
+// TODO: replace core.setFailed() by core.error
+
 /**
  * This function will be only run if
  * - Event is `issue_comment` and action is `created`
@@ -10,9 +13,8 @@ const { verifyTriageTeam } = require("./helpers")
  * - The issue is not closed
  *
  * This function will:
- * - `/assign @user1` : Can only be used by core-members of the organization. Assigns the issue to user1 
- * - `/assign` : Assign the issue to the commenter
- * - prevent new assignees, if the MAX_ASSIGNEE has been reached
+ * - `/unassign @user1` : Can only be used by core-members of the organization. Unassigns user1 from the issue.   
+ * - `/unassign` : Unassign the commenter from the issue.
  * 
  *
  * @export
@@ -21,7 +23,7 @@ const { verifyTriageTeam } = require("./helpers")
  * @returns {Promise<void>}
  */
 
-async function slash_assign( octokit ) {
+async function act_on_assign_command( octokit ) {
 
     const issue = await Issue.getInstance();
     if (issue.actions_payload.state == "closed") {
@@ -31,81 +33,67 @@ async function slash_assign( octokit ) {
     if (github.context.eventName === "issue_comment" && github.context.payload.action === "created") {
         const issue_comment = await IssueComment.getInstance();
         const issue_comment_body = (issue_comment.details.body ?? "").trim();
-        if((issue_comment_body).trim().startsWith("/assign")) {
-            const issue_labels = issue.details.labels;
-            let max_assignee_count = 1;
-            for(let i=0; i<issue_labels.length; i++) {
-                const label_name = issue_labels[i].name;
-                if(label_name.startsWith("max-assignee")) {
-                    max_assignee_count = parseInt(label_name.split("max-assignee-")[1]);
-                    max_assignee_count = (max_assignee_count === NaN) ? 1 : max_assignee_count;
-                    break;
-                }
-            }
-            
-            const current_assignee_count = issue.details.assignees.length;
-            const remaining_assignees = Math.max(max_assignee_count - current_assignee_count, 0);
-            if(remaining_assignees < 1) return;
+        if(issue_comment_body.startsWith("/unassign")) {
 
-            if(issue_comment_body === "/assign") {
-                // self-assign
+            if(issue_comment_body === "/unassign") {
+                // self-unassign --done
                 try {
-                    const res = await octokit.rest.issues.addAssignees({
+                    const res = await octokit.rest.issues.removeAssignees({
                         owner: github.context.payload.repository.owner.login,
                         repo: github.context.payload.repository.name,
                         issue_number: issue.actions_payload.number,
                         assignees: [github.context.actor]
                     });
 
-                    let comment_reaction = "+1";
-                    if(res.status === 201) {
-                        core.info("User assigned(self) to the issue");
+                    let comment_reaction = "+1";                    
+                    if(res.status === 200) {
+                        core.info("User unassigned(self) from the issue");
                     } else {
                         comment_reaction = "-1";
-                        core.setFailed("Failed to assign(self) user to the issue");
-                    }
-
+                        core.setFailed("Failed to unassign(self) user from the issue");
+                    } 
+                    
                     // reaction to the comment
                     await octokit.rest.reactions.createForIssueComment({
                         owner: github.context.payload.repository.owner.login,
                         repo: github.context.payload.repository.name,
                         comment_id: issue_comment.actions_payload.id,
                         content: comment_reaction
-                    });                                 
+                    });                                   
                 } catch (error) {
                     core.setFailed(error.message);
                 }
                 return;
             }
             if(verifyTriageTeam()) {
-                // assign to other contributors
-                let assignees_to_add = issue_comment_body.substring(7).split("@").map(e => e.trim())
-                assignees_to_add.shift()
-                const fcfs_assignees_to_add = assignees_to_add.slice(0, remaining_assignees)
-                
+                // unassign to other contributors
+                let assignees_to_remove = issue_comment_body.substring(9).split("@").map(e => e.trim())
+                assignees_to_remove.shift()
+
                 try {
-                    const res = await octokit.rest.issues.addAssignees({
+                    const res = await octokit.rest.issues.removeAssignees({
                         owner: github.context.payload.repository.owner.login,
                         repo: github.context.payload.repository.name,
                         issue_number: issue.actions_payload.number,
-                        assignees: fcfs_assignees_to_add
+                        assignees: assignees_to_remove
                     });
 
-                    let comment_reaction = "+1";
-                    if(res.status === 201) {
-                        core.info("User assigned to the issue");
+                    let comment_reaction = "+1";                    
+                    if(res.status === 200) {
+                        core.info("Users unassigned from the issue");
                     } else {
                         comment_reaction = "-1";
-                        core.setFailed("Failed to assign user to the issue");
-                    }
-
+                        core.setFailed("Failed to unassign user from the issue");
+                    } 
+                    
+                    
                     // reaction to the comment
                     await octokit.rest.reactions.createForIssueComment({
                         owner: github.context.payload.repository.owner.login,
                         repo: github.context.payload.repository.name,
                         comment_id: issue_comment.actions_payload.id,
                         content: comment_reaction
-                    });                                
+                    });
                 } catch (error) {
                     core.setFailed(error.message);
                 }
@@ -114,4 +102,4 @@ async function slash_assign( octokit ) {
     }
 }
 
-module.exports = slash_assign;
+module.exports = act_on_assign_command;

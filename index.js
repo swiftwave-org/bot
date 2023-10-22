@@ -4,8 +4,8 @@ const github = require('@actions/github');
 const act_on_pending_triage_removal = require('./src/act_on_pending_triage_removal');
 const act_on_approve_command = require('./src/act_on_approve_command');
 const act_on_update_command = require('./src/act_on_update_command');
-const slash_assign = require("./src/slash_assign")
-const slash_unassign = require("./src/slash_unassign")
+const act_on_assign_command = require("./src/act_on_unassign_command")
+const act_on_unassign_command = require("./src/act_on_unassign_command")
 
 const run = async () => {
     const token = core.getInput('token', { required: true });
@@ -19,8 +19,8 @@ const run = async () => {
         act_on_pending_triage_removal(octokit),
         act_on_approve_command(octokit),
         act_on_update_command(octokit),
-        slash_assign(octokit),
-        slash_unassign(octokit),
+        act_on_assign_command(octokit),
+        act_on_unassign_command(octokit),
     ])
 }
 
