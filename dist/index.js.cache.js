@@ -274,11 +274,11 @@ const { Issue } = __webpack_require__(9882);
 async function add_labels_and_lock_new_issues(octokit) {
     try {
         // get the issue
-        const issue = Issue.getInstance();
+        const issue = await Issue.getInstance();
 
-        if (github.context.eventName === "issue" && github.context.payload.action === "opened" && !issue?.isPullRequest()) {
+        if (github.context.eventName === "issue" && github.context.payload.action === "opened" && !issue.isPullRequest()) {
             // fetch the issue labels
-            const issue_labels = (await issue.details["labels"]) || [];
+            const issue_labels = issue.details.labels;
             const hasPendingTriageLabel = issue_labels.some(label => label.name === 'pending-triage');
             const hasMaxAssigneesLabel = issue_labels.some(label => label.name.match(/max-assignees-[0-9]{1,2}/));
             // prepare the missing labels list
