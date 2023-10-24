@@ -343,7 +343,7 @@ function verifyTriageTeam() {
     return triageTeamUsernames.includes(actor);
 }
 
-module.exports = { verifyTriageTeam, addLabels };
+module.exports = { verifyTriageTeam };
 
 /***/ }),
 
