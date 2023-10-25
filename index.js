@@ -18,7 +18,7 @@ const run = async () => {
         act_on_pending_triage_removal(octokit),
         act_on_approve_command(octokit),
         act_on_update_command(octokit),
-        auto_add_default_labels_and_lock_new_issues(octokit),
+        auto_add_default_labels_and_lock_new_issuesmax-assignees-(octokit),
     ])
 }
 
