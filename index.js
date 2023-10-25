@@ -4,6 +4,7 @@ const github = require('@actions/github');
 const act_on_pending_triage_removal = require('./act_on_pending_triage_removal');
 const act_on_approve_command = require('./act_on_approve_command');
 const act_on_update_command = require('./act_on_update_command');
+const auto_add_default_labels_and_lock_new_issues = require('./auto_add_default_labels_and_lock_new_issues');
 
 const run = async () => {
     const token = core.getInput('token', { required: true });
@@ -17,6 +18,7 @@ const run = async () => {
         act_on_pending_triage_removal(octokit),
         act_on_approve_command(octokit),
         act_on_update_command(octokit),
+        auto_add_default_labels_and_lock_new_issuesmax-assignees-(octokit),
     ])
 }
 
