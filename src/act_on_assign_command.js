@@ -1,11 +1,7 @@
 const core = require("@actions/core");
 const github = require("@actions/github");
-const { Issue, IssueComment } = require("./singleton")
+const { Issue, IssueComment } = require("./singletons")
 const { verifyTriageTeam } = require("./helpers")
-
-// TODO: replace USER in messages by actual user_names
-// TODO: replace core.setFailed() by core.error
-
 
 /**
  * This function will be only run if
@@ -49,7 +45,10 @@ async function act_on_assign_command( octokit ) {
             
             const current_assignee_count = issue.details.assignees.length;
             const remaining_assignees = Math.max(max_assignee_count - current_assignee_count, 0);
-            if(remaining_assignees < 1) return;
+            if(remaining_assignees < 1) {
+                core.info("max-assignees reached, can't assign more");
+                return;
+            }
 
             if(issue_comment_body === "/assign") {
                 // self-assign
@@ -63,10 +62,10 @@ async function act_on_assign_command( octokit ) {
 
                     let comment_reaction = "+1";
                     if(res.status === 201) {
-                        core.info("User assigned(self) to the issue");
+                        core.info(`${github.context.actor} assigned(self) to the issue`);
                     } else {
                         comment_reaction = "-1";
-                        core.setFailed("Failed to assign(self) user to the issue");
+                        core.error(`Failed to assign(self) ${github.context.actor} to the issue`);
                     }
 
                     // reaction to the comment
@@ -77,7 +76,7 @@ async function act_on_assign_command( octokit ) {
                         content: comment_reaction
                     });                                 
                 } catch (error) {
-                    core.setFailed(error.message);
+                    core.error(error.message);
                 }
                 return;
             }
@@ -96,11 +95,12 @@ async function act_on_assign_command( octokit ) {
                     });
 
                     let comment_reaction = "+1";
+                    const new_added_assignees = (res.details.assignees).filter(ele => fcfs_assignees_to_add.includes(ele));
                     if(res.status === 201) {
-                        core.info("User assigned to the issue");
+                        core.info(`${new_added_assignees.join(",")} assigned to the issue`);
                     } else {
                         comment_reaction = "-1";
-                        core.setFailed("Failed to assign user to the issue");
+                        core.error(`Failed to assign ${new_added_assignees.join(",")} to the issue`);
                     }
 
                     // reaction to the comment
@@ -111,7 +111,7 @@ async function act_on_assign_command( octokit ) {
                         content: comment_reaction
                     });                                
                 } catch (error) {
-                    core.setFailed(error.message);
+                    core.error(error.message);
                 }
             }    
         }

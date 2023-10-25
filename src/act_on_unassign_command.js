@@ -1,10 +1,7 @@
 const core = require("@actions/core");
 const github = require("@actions/github");
-const { Issue, IssueComment } = require("./singleton")
+const { Issue, IssueComment } = require("./singletons")
 const { verifyTriageTeam } = require("./helpers")
-
-// TODO: replace USER in messages by actual user_names
-// TODO: replace core.setFailed() by core.error
 
 /**
  * This function will be only run if
@@ -47,10 +44,10 @@ async function act_on_assign_command( octokit ) {
 
                     let comment_reaction = "+1";                    
                     if(res.status === 200) {
-                        core.info("User unassigned(self) from the issue");
+                        core.info(`${github.context.actor} unassigned(self) from the issue`);
                     } else {
                         comment_reaction = "-1";
-                        core.setFailed("Failed to unassign(self) user from the issue");
+                        core.error(`Failed to unassign(self) ${github.context.actor} from the issue`);
                     } 
                     
                     // reaction to the comment
@@ -61,7 +58,7 @@ async function act_on_assign_command( octokit ) {
                         content: comment_reaction
                     });                                   
                 } catch (error) {
-                    core.setFailed(error.message);
+                    core.error(error.message);
                 }
                 return;
             }
@@ -78,12 +75,13 @@ async function act_on_assign_command( octokit ) {
                         assignees: assignees_to_remove
                     });
 
-                    let comment_reaction = "+1";                    
+                    let comment_reaction = "+1"; 
+                    const removed_assignees = (assignees_to_remove).filter(ele => !(res.details.assignees).includes(ele));                                       
                     if(res.status === 200) {
-                        core.info("Users unassigned from the issue");
+                        core.info(`${removed_assignees.join(",")} unassigned from the issue`);
                     } else {
                         comment_reaction = "-1";
-                        core.setFailed("Failed to unassign user from the issue");
+                        core.error(`Failed to unassign ${assignees_to_remove.join(",")} from the issue`);
                     } 
                     
                     
@@ -95,7 +93,7 @@ async function act_on_assign_command( octokit ) {
                         content: comment_reaction
                     });
                 } catch (error) {
-                    core.setFailed(error.message);
+                    core.error(error.message);
                 }
             }    
         }
