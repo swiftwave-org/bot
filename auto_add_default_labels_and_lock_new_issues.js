@@ -2,9 +2,7 @@ const core = require('@actions/core');
 const github = require('@actions/github');
 const { Issue } = require("./singletons");
 
-
-
-async function add_labels_and_lock_new_issues(octokit) {
+async function auto_add_default_labels_and_lock_new_issues(octokit) {
     try {
         // get the issue
         const issue = await Issue.getInstance();
@@ -59,4 +57,4 @@ async function add_labels_and_lock_new_issues(octokit) {
     }
 }
 
-module.exports = add_labels_and_lock_new_issues
+module.exports = auto_add_default_labels_and_lock_new_issues
