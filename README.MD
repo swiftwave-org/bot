@@ -33,7 +33,7 @@ Available Option
 - Remove `pending-triage` label, that will unlock conversion and write message for start working
 - `/approve` command > approve issue, this will remove `pending-triage` label and do the same as before
 - `/update` command > update the base branch of pull request branch
-- Add `max-assignee-{number}` label, that will limit the number of assignees for the issue. If not provided it will be limited to 1
+- Add `max-assignees-{number}` label, that will limit the number of assignees for the issue. If not provided it will be limited to 1
 - `/assign` command > assigns the issue to the commenter
 - `/unassign` command > unassigns the issue from the commenter
 - `/assign @user1` command > assigns the issue to `user1` (can only be used by triage-team members)

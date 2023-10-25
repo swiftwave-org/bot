@@ -36,8 +36,8 @@ async function act_on_assign_command( octokit ) {
             let max_assignee_count = 1;
             for(let i=0; i<issue_labels.length; i++) {
                 const label_name = issue_labels[i].name;
-                if(label_name.startsWith("max-assignee")) {
-                    max_assignee_count = parseInt(label_name.split("max-assignee-")[1]);
+                if(label_name.startsWith("max-assignees")) {
+                    max_assignee_count = parseInt(label_name.split("max-assignees-")[1]);
                     max_assignee_count = (max_assignee_count === NaN) ? 1 : max_assignee_count;
                     break;
                 }
