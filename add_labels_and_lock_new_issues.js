@@ -9,7 +9,7 @@ async function add_labels_and_lock_new_issues(octokit) {
         // get the issue
         const issue = await Issue.getInstance();
 
-        if (github.context.eventName === "issue" && github.context.payload.action === "opened" && !issue.isPullRequest()) {
+        if (github.context.eventName === "issues" && github.context.payload.action === "opened" && !issue.isPullRequest()) {
             // fetch the issue labels
             const issue_labels = issue.details.labels;
             const hasPendingTriageLabel = issue_labels.some(label => label.name === 'pending-triage');
