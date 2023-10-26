@@ -5,7 +5,7 @@ name: 'SwiftWave Triage Bot'
 
 on:
   issues:
-    types: [unlabeled]
+    types: [opened, unlabeled]
   issue_comment:
     types: [created]
 
