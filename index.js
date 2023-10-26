@@ -4,7 +4,7 @@ const github = require('@actions/github');
 const act_on_pending_triage_removal = require('./src/act_on_pending_triage_removal');
 const act_on_approve_command = require('./src/act_on_approve_command');
 const act_on_update_command = require('./src/act_on_update_command');
-const act_on_assign_command = require("./src/act_on_unassign_command");
+const act_on_assign_command = require("./src/act_on_assign_command");
 const act_on_unassign_command = require("./src/act_on_unassign_command");
 const auto_add_default_labels_and_lock_new_issues = require('./src/auto_add_default_labels_and_lock_new_issues');
 
