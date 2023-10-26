@@ -8,7 +8,7 @@
     "action.yml"
   ],
   "scripts": {
-    "build": "ncc build index.js -o dist --v8-cache --target es2015"
+    "build": "ncc build index.js -o dist --minify --v8-cache --target es2015"
   },
   "author": "",
   "license": "Apache-2.0",
